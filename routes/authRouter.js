@@ -1,21 +1,18 @@
 import { Router } from 'express';
 import validateJOI from '../middlewares/validateJOI.js';
-import {
-  createPost,
-  deletePost,
-  getAllPosts,
-  getSinglePost,
-  updatePost
-} from '../controllers/posts.js';
 import { userSchema, signinSchema } from '../joi/schemas.js';
+import { signUp, signIn, signOut, me } from '../controllers/auth.js';
+import verifyTokenMiddleware from '../middlewares/verifyToken.js';
 
 const authRouter = Router();
 
-authRouter.route('/signup').post(validateJOI(userSchema), signUp);
+authRouter.post('/signup', validateJOI(userSchema), signUp);
 
-authRouter.route('/signin').post(validateJOI(signinSchema), signIn);
+authRouter.post('/signin', validateJOI(signinSchema), signIn);
 
-authRouter.route('/me').get();
+authRouter.get('/me', verifyTokenMiddleware, me);
+
+authRouter.delete('/signout', signOut);
 
 export default authRouter;
 

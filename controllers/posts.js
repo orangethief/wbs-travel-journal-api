@@ -9,8 +9,10 @@ export const getAllPosts = asyncHandler(async (req, res, next) => {
 });
 
 export const createPost = asyncHandler(async (req, res, next) => {
-  const { body } = req;
-  const newPost = await (await Post.create({ ...body })).populate('author');
+  const { body, userId } = req;
+  const newPost = await  Post.create({ ...body,
+    author: userId,
+   }).populate('author');
   res.status(201).json(newPost);
 });
 
@@ -27,20 +29,29 @@ export const getSinglePost = asyncHandler(async (req, res, next) => {
 export const updatePost = asyncHandler(async (req, res, next) => {
   const {
     body,
-    params: { id }
+    params: { id },
+    userId
   } = req;
   if (!isValidObjectId(id)) throw new ErrorResponse('Invalid id', 400);
-  const updatedPost = await Post.findByIdAndUpdate(id, body, { new: true }).populate('author');
+  const updatedPost = await Post.findById(id).populate('author');
   if (!updatedPost) throw new ErrorResponse(`Post with id of ${id} doesn't exist`, 404);
+  if (updatedPost.author._id.toString() !== userId)
+    throw new ErrorResponse('You are not allowed to update this post', 403);
+  updatedPost.set(body);
+  await updatedPost.save();
   res.json(updatedPost);
 });
 
 export const deletePost = asyncHandler(async (req, res, next) => {
   const {
-    params: { id }
+    params: { id },
+    userId
   } = req;
   if (!isValidObjectId(id)) throw new ErrorResponse('Invalid id', 400);
-  const deletedPost = await Post.findByIdAndDelete(id).populate('author');
+  const deletedPost = await Post.findById(id).populate('author');
   if (!deletedPost) throw new Error(`Post with id of ${id} doesn't exist`);
+  if (deletedPost.author._id.toString() !== userId)
+    throw new ErrorResponse('You are not allowed to delete this post', 403);
+  await Post.findByIdAndDelete(id);
   res.json({ success: `Post with id of ${id} was deleted` });
 });
